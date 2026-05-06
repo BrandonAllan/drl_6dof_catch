@@ -2,3 +2,4 @@ __pycache__/
 *.pth
 mujoco_env/
 .vscode/
+*.TXT
