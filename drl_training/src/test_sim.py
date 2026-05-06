@@ -4,7 +4,7 @@ import time
 
 # 1. Point to the specific robot model you want to load
 # Let's start with the quadruped for the thesis!
-model_path = "drl_training/models/robot.xml"
+model_path = "drl_training/models/scene.xml"
 
 print(f"Loading model from: {model_path}")
 

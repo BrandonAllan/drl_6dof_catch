@@ -1,0 +1,6 @@
+<mujoco>
+    <body name="target_object" pos="0 0 0">
+        <freejoint name="object_joint"/>
+        <geom name="object_geom" type="sphere" size="0.03" rgba="1 0 0 1" mass="0.1" friction="1 0.005 0.0001"/>
+    </body>
+</mujoco>
