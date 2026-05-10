@@ -14,6 +14,10 @@ class CathRobotEnv(gym.Env):
         self.model_path = "drl_training/models/scene.xml"
         self.model = mujoco.MjModel.from_xml_path(self.model_path)
         self.data = mujoco.MjData(self.model)
+        self.step_count = 0
+        self.joint_mins = np.array([-6.28, -6.28, -3.14, -6.28, -6.28, -6.28])
+        self.joint_maxs = np.array([6.28, 6.28, 3.14, 6.28, 6.28, 6.28])
+        self.target_angles = np.zeros(6)
 
         self.action_space = spaces.Box(
             low = -1.0,
@@ -47,17 +51,18 @@ class CathRobotEnv(gym.Env):
 
         return obs
 
-
     def _get_info(self):
         
         return {}
 
-
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
+        self.step_count = 0
+
         self.data.qpos[:7] = np.array([0.0, -1.57, 1.57, -1.57, -1.57, 0.0, 0.0])
         self.data.qvel[:7] = np.zeros(7)
+        self.target_angles = np.array([0.0, -1.57, 1.57, -1.57, -1.57, 0.0])
         
         distance = self.np_random.uniform(1.2, 1.8)
         angle = self.np_random.uniform(-np.pi/6, np.pi/6 )
@@ -79,8 +84,71 @@ class CathRobotEnv(gym.Env):
 
         return self._get_obs(), self._get_info()
 
-    def step(self):
+    def step(self, action):
+
+        self.step_count += 1 
+
+        scaled_action = np.zeros(7)
+        self.target_angles += action[0:6] * 0.05
+        self.target_angles = np.clip(self.target_angles, self.joint_mins, self.joint_maxs)
+
+        scaled_action[:6] = self.target_angles
+        scaled_action[6] = ((action[6] + 1.0) / 2.0) * 255.0
         
+
+
+        self.data.ctrl[:7] = scaled_action
+
+        mujoco.mj_step(self.model, self.data)
+
+        obs = self._get_obs()
+
+        # Position ball-gripper
+        ball_pos = self.data.body("target_object").xpos
+
+        left_pad = self.data.geom("left_pad1").xpos
+        right_pad = self.data.geom("right_pad1").xpos
+        gripper_pos = (left_pad + right_pad) / 2.0
+                
+        #Velocity ball-gripper
+        ball_vel = self.data.body("target_object").cvel[3:]
+        gripper_vel = self.data.body("2f85_base").cvel[3:]
+        ball_dir = ball_vel / (np.linalg.norm(ball_vel) + 1e-6)
+        gripper_dir = gripper_vel / (np.linalg.norm(gripper_vel) + 1e-6)
+
+        reward = 0.0
+        terminated = False
+        truncated = False 
+
+        
+
+
+        distance = np.linalg.norm(ball_pos - gripper_pos)
+        reward += -distance *1.0
+
+        reward -= np.sum(np.square(action[:6])) * 0.0001
+
+        if ball_pos[2] < 0.05:
+            terminated = True
+            reward -= 20.0  # Massive penalty for dropping it
+
+        if self.step_count > 1000:
+            truncated = True
+
+        if distance < 0.15:
+            velocity_match = np.dot(ball_dir, gripper_dir)
+            reward += velocity_match * 0.6
+
+        if distance < 0.02:
+            if action[6] > 0.5:
+                if ball_pos[2] > 0.2:
+                    reward += 30.0
+            else:
+                reward -= 10.0
+
+        info = self._get_info()
+
+        return obs, reward, terminated, truncated, info
         
 if __name__ == "__main__":
     # 1. Initialize our environment and trigger the first random throw
