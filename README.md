@@ -1,8 +1,8 @@
 # 🤖 Deep Reinforcement Learning for 6-DOF Robotic Catching
 
-A research project implementing Deep Reinforcement Learning (DRL) to enable a 6-DOF robotic manipulator to autonomously catch falling objects in real-time. The system integrates trajectory prediction, dynamic motion planning, and learned manipulation policies to tackle the challenges of real-time grasping. The project combines physics simulation (PyBullet), advanced RL algorithms, and robotic control frameworks to develop a complete autonomous catching pipeline that bridges simulation and real-world deployment.
+A research project implementing Deep Reinforcement Learning (DRL) to enable a 6-DOF robotic manipulator to autonomously catch falling objects in real-time. The system utilizes custom Delta Position Control to manage physical hardware limits. The project bridges advanced RL algorithms and physics simulations to tackle the challenges of high-speed dynamic grasping.
 
-**Future Implementation**: Integration with ROS 2 Jazzy and MoveIt 2 for post-catch manipulation, enabling the robot to autonomously path-plan and place caught objects into designated containers.
+- Future Implementation: Integration with ROS 2 Jazzy and MoveIt 2 for post-catch manipulation, enabling the robot to autonomously path-plan and place caught objects into designated containers.
 ---
 
 ## 🎯 Project Scope
@@ -30,16 +30,6 @@ A research project implementing Deep Reinforcement Learning (DRL) to enable a 6-
 - 🔄 Agent training and hyperparameter tuning (in progress).
 - ⏳ ROS 2 + MoveIt 2 integration for post-catch manipulation (Phase 2).
 - ⏳ Real robot hardware validation (Phase 3).
-
----
-
-## 🎓 Research Direction
-
-This project addresses fundamental challenges in dynamic manipulation:
-- **Real-time decision making** under uncertainty
-- **Learning from trial and error** in physics-constrained environments
-- **Generalization** to unseen object trajectories
-- **Bridging simulation and reality** (sim-to-real transfer)
 
 ---
 
