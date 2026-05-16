@@ -66,7 +66,7 @@ class CathRobotEnv(gym.Env):
         
         distance = self.np_random.uniform(1.2, 1.8)
         angle = self.np_random.uniform(-np.pi/6, np.pi/6 )
-        height_z = self.np_random.uniform(0.2, 0.6)
+        height_z = self.np_random.uniform(0.2, 0.8)
         spawn_x, spawn_y = -distance * np.cos(angle), distance * np.sin(angle)
 
         self.data.qpos[12:15] = [spawn_x, spawn_y, height_z]
@@ -95,8 +95,6 @@ class CathRobotEnv(gym.Env):
         scaled_action[:6] = self.target_angles
         scaled_action[6] = ((action[6] + 1.0) / 2.0) * 255.0
         
-
-
         self.data.ctrl[:7] = scaled_action
 
         mujoco.mj_step(self.model, self.data)
@@ -109,6 +107,9 @@ class CathRobotEnv(gym.Env):
         left_pad = self.data.geom("left_pad1").xpos
         right_pad = self.data.geom("right_pad1").xpos
         gripper_pos = (left_pad + right_pad) / 2.0
+
+        #base to gripper distance
+        base_distance = np.linalg.norm(gripper_pos - np.array([0.0, 0.0, 0.0]))
                 
         #Velocity ball-gripper
         ball_vel = self.data.body("target_object").cvel[3:]
@@ -120,26 +121,34 @@ class CathRobotEnv(gym.Env):
         terminated = False
         truncated = False 
 
-        
-
-
+        # Reward for getting close
         distance = np.linalg.norm(ball_pos - gripper_pos)
         reward += -distance *1.0
 
+        # Penalty for moving too much
         reward -= np.sum(np.square(action[:6])) * 0.0001
 
+        # Premature squeeze penalty
+        if distance > 0.10 and action[6] > 0.0:
+            reward -= 0.1
+
+        # Penalty if the ball touches the ground
         if ball_pos[2] < 0.05:
             terminated = True
-            reward -= 20.0  # Massive penalty for dropping it
+            reward -= 20.0 
 
-        if self.step_count > 1000:
+        if base_distance < 0.30:
+            reward -= 2.0
+
+        if self.step_count > 1500:
             truncated = True
 
+        # Reward for velocity match
         if distance < 0.15:
             velocity_match = np.dot(ball_dir, gripper_dir)
             reward += velocity_match * 0.6
 
-        if distance < 0.02:
+        if distance < 0.06:
             if action[6] > 0.5:
                 if ball_pos[2] > 0.2:
                     reward += 30.0
